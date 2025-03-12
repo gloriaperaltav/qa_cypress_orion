@@ -8,8 +8,8 @@ describe("Agregar Productos al Carrito desde el Menú", () => {
 
   it("Debe agregar dos productos al carrito y validar el precio total", () => {
 
-    const username = "cuentademoorionhub@gmail.com";
-    const password = "12345678Fs";
+    const username = "";
+    const password = "";
    LoginPage.visit();
        LoginPage.clickNavigateToLogin();
        LoginPage.enterUsername(username);
