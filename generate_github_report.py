@@ -1,380 +1,76 @@
 #!/usr/bin/env python3
-"""
-GitHub Repositories Professional PDF Report Generator
-Uses WeasyPrint + Jinja2 to create a styled PDF report
-"""
-
+"""GitHub Repositories PDF Report Generator - Ephemeral Script"""
 from datetime import datetime
 from jinja2 import Template
-from weasyprint import HTML, CSS
-import io
+from weasyprint import HTML
 
-# Report data
-user_data = {
-    "username": "gloriaperaltav",
-    "name": "Gloria Peralta",
-    "generated_at": datetime.now().strftime("%d de %B de %Y"),
-    "stats": {
-        "public_repos": 2,
-        "private_repos": 0,
-        "total_stars": 0,
-        "total_size_kb": 3.7
-    }
-}
-
-repositories = [
-    {
-        "name": "qa_cypress_orion",
-        "description": "Proyecto de automatización de pruebas con Cypress",
-        "url": "https://github.com/gloriaperaltav/qa_cypress_orion",
-        "language": "TypeScript",
-        "stars": 0,
-        "visibility": "Público",
-        "updated_at": "12 Mar 2025"
-    },
-    {
-        "name": "TEST",
-        "description": "Repositorio de pruebas",
-        "url": "https://github.com/gloriaperaltav/TEST",
-        "language": "Sin especificar",
-        "stars": 0,
-        "visibility": "Público",
-        "updated_at": "4 Sep 2026"
-    }
+# Data
+USER = {"name": "Gloria Peralta", "login": "gloriaperaltav"}
+REPOS = [
+    {"name": "qa_cypress_orion", "lang": "TypeScript", "stars": 0, "updated": "12 Mar 2025", "url": "https://github.com/gloriaperaltav/qa_cypress_orion"},
+    {"name": "TEST", "lang": "—", "stars": 0, "updated": "4 Sep 2026", "url": "https://github.com/gloriaperaltav/TEST"}
 ]
+STATS = {"public": 2, "private": 0, "size": "3.7 KB"}
 
-# HTML Template with professional styling
-html_template = """
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Informe de Repositorios GitHub</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        @page {
-            size: A4;
-            margin: 2cm;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #333;
-            line-height: 1.6;
-            background: #f8f9fa;
-        }
-        
-        .container {
-            max-width: 210mm;
-            background: white;
-            padding: 2cm;
-        }
-        
-        header {
-            border-bottom: 3px solid #0366d6;
-            padding-bottom: 1.5cm;
-            margin-bottom: 1.5cm;
-        }
-        
-        .header-title {
-            font-size: 28px;
-            font-weight: 700;
-            color: #0366d6;
-            margin-bottom: 0.5cm;
-        }
-        
-        .header-subtitle {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 0.3cm;
-        }
-        
-        .header-meta {
-            font-size: 12px;
-            color: #999;
-        }
-        
-        .stats-section {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1cm;
-            margin-bottom: 2cm;
-            padding: 1cm;
-            background: #f6f8fa;
-            border-radius: 6px;
-        }
-        
-        .stat-card {
-            text-align: center;
-            padding: 0.8cm;
-            background: white;
-            border-left: 4px solid #0366d6;
-            border-radius: 4px;
-        }
-        
-        .stat-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: #0366d6;
-            margin-bottom: 0.3cm;
-        }
-        
-        .stat-label {
-            font-size: 12px;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .section-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: #0366d6;
-            margin-top: 1.5cm;
-            margin-bottom: 1cm;
-            padding-bottom: 0.5cm;
-            border-bottom: 2px solid #e1e4e8;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 1.5cm;
-            font-size: 11px;
-        }
-        
-        thead {
-            background: #f6f8fa;
-            border-bottom: 2px solid #0366d6;
-        }
-        
-        th {
-            padding: 0.6cm;
-            text-align: left;
-            font-weight: 700;
-            color: #0366d6;
-            text-transform: uppercase;
-            font-size: 10px;
-            letter-spacing: 0.5px;
-        }
-        
-        td {
-            padding: 0.6cm;
-            border-bottom: 1px solid #e1e4e8;
-        }
-        
-        tbody tr:nth-child(even) {
-            background: #f6f8fa;
-        }
-        
-        tbody tr:hover {
-            background: #f0f4f8;
-        }
-        
-        .repo-name {
-            font-weight: 600;
-            color: #0366d6;
-        }
-        
-        .language-badge {
-            display: inline-block;
-            padding: 0.2cm 0.4cm;
-            background: #0366d6;
-            color: white;
-            border-radius: 3px;
-            font-size: 10px;
-            font-weight: 600;
-        }
-        
-        .visibility-badge {
-            display: inline-block;
-            padding: 0.2cm 0.4cm;
-            background: #28a745;
-            color: white;
-            border-radius: 3px;
-            font-size: 10px;
-            font-weight: 600;
-        }
-        
-        .repo-details {
-            margin-bottom: 2cm;
-            padding: 1cm;
-            background: #f6f8fa;
-            border-left: 4px solid #0366d6;
-            border-radius: 4px;
-            page-break-inside: avoid;
-        }
-        
-        .repo-details-title {
-            font-size: 14px;
-            font-weight: 700;
-            color: #0366d6;
-            margin-bottom: 0.5cm;
-        }
-        
-        .repo-details-item {
-            margin-bottom: 0.4cm;
-            font-size: 11px;
-        }
-        
-        .repo-details-label {
-            font-weight: 600;
-            color: #666;
-            display: inline-block;
-            width: 3cm;
-        }
-        
-        .repo-details-value {
-            color: #333;
-        }
-        
-        footer {
-            margin-top: 2cm;
-            padding-top: 1cm;
-            border-top: 1px solid #e1e4e8;
-            text-align: center;
-            font-size: 10px;
-            color: #999;
-        }
-        
-        .url-link {
-            color: #0366d6;
-            text-decoration: none;
-            word-break: break-all;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <header>
-            <div class="header-title">📊 Informe de Repositorios GitHub</div>
-            <div class="header-subtitle">Usuario: {{ username }} ({{ name }})</div>
-            <div class="header-meta">Generado: {{ generated_at }}</div>
-        </header>
-        
-        <section class="stats-section">
-            <div class="stat-card">
-                <div class="stat-value">{{ stats.public_repos }}</div>
-                <div class="stat-label">Públicos</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">{{ stats.private_repos }}</div>
-                <div class="stat-label">Privados</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">{{ stats.total_stars }}</div>
-                <div class="stat-label">Estrellas</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">{{ stats.total_size_kb }}</div>
-                <div class="stat-label">KB Totales</div>
-            </div>
-        </section>
-        
-        <h2 class="section-title">Resumen de Repositorios</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Nombre</th>
-                    <th>Lenguaje</th>
-                    <th>Estrellas</th>
-                    <th>Visibilidad</th>
-                    <th>Última Actualización</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for repo in repositories %}
-                <tr>
-                    <td><span class="repo-name">{{ repo.name }}</span></td>
-                    <td><span class="language-badge">{{ repo.language }}</span></td>
-                    <td>⭐ {{ repo.stars }}</td>
-                    <td><span class="visibility-badge">{{ repo.visibility }}</span></td>
-                    <td>{{ repo.updated_at }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        
-        <h2 class="section-title">Detalles de Repositorios</h2>
-        {% for repo in repositories %}
-        <div class="repo-details">
-            <div class="repo-details-title">{{ repo.name }}</div>
-            <div class="repo-details-item">
-                <span class="repo-details-label">Descripción:</span>
-                <span class="repo-details-value">{{ repo.description }}</span>
-            </div>
-            <div class="repo-details-item">
-                <span class="repo-details-label">URL:</span>
-                <span class="repo-details-value"><a href="{{ repo.url }}" class="url-link">{{ repo.url }}</a></span>
-            </div>
-            <div class="repo-details-item">
-                <span class="repo-details-label">Lenguaje:</span>
-                <span class="repo-details-value">{{ repo.language }}</span>
-            </div>
-            <div class="repo-details-item">
-                <span class="repo-details-label">Estrellas:</span>
-                <span class="repo-details-value">{{ repo.stars }}</span>
-            </div>
-            <div class="repo-details-item">
-                <span class="repo-details-label">Visibilidad:</span>
-                <span class="repo-details-value">{{ repo.visibility }}</span>
-            </div>
-            <div class="repo-details-item">
-                <span class="repo-details-label">Actualizado:</span>
-                <span class="repo-details-value">{{ repo.updated_at }}</span>
-            </div>
-        </div>
-        {% endfor %}
-        
-        <footer>
-            <p>Informe generado automáticamente | GitHub Repositories Report Generator</p>
-        </footer>
-    </div>
-</body>
-</html>
-"""
+HTML_TPL = """<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><title>Informe GitHub</title><style>
+@page{size:A4;margin:2cm}*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',sans-serif;color:#24292e;line-height:1.6}
+.header{border-bottom:3px solid #0366d6;padding-bottom:20px;margin-bottom:30px}
+.header h1{color:#0366d6;font-size:28px;margin-bottom:5px}
+.header p{color:#586069;font-size:13px}
+.user-info{background:#f6f8fa;border-left:4px solid #0366d6;padding:15px;margin-bottom:30px;border-radius:3px}
+.user-info h2{color:#0366d6;font-size:15px;margin-bottom:8px}
+.user-info p{font-size:12px;color:#586069;margin:4px 0}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-bottom:30px}
+.stat-card{background:#f6f8fa;border:1px solid #e1e4e8;padding:15px;border-radius:6px;text-align:center}
+.stat-card .num{font-size:24px;font-weight:bold;color:#0366d6;margin-bottom:5px}
+.stat-card .lbl{font-size:11px;color:#586069;text-transform:uppercase;letter-spacing:0.5px}
+.section{color:#0366d6;font-size:18px;font-weight:600;margin-top:30px;margin-bottom:15px;border-bottom:2px solid #e1e4e8;padding-bottom:10px}
+table{width:100%;border-collapse:collapse;margin-bottom:20px;font-size:12px}
+thead{background:#f6f8fa;border-bottom:2px solid #0366d6}
+th{padding:12px;text-align:left;font-weight:600;color:#0366d6}
+td{padding:12px;border-bottom:1px solid #e1e4e8}
+tbody tr:hover{background:#f6f8fa}
+.repo{background:#f6f8fa;border:1px solid #e1e4e8;border-radius:6px;padding:15px;margin-bottom:15px}
+.repo h3{color:#0366d6;font-size:14px;margin-bottom:8px}
+.repo .meta{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;font-size:11px;color:#586069}
+.repo .meta strong{color:#24292e;margin-right:5px}
+.badge{display:inline-block;padding:3px 8px;background:#d4edda;color:#155724;border-radius:12px;font-size:10px;font-weight:500}
+.footer{margin-top:40px;padding-top:15px;border-top:1px solid #e1e4e8;text-align:center;font-size:10px;color:#6a737d}
+</style></head><body>
+<div class="header"><h1>📊 Informe de Repositorios GitHub</h1><p>{{ date }} | {{ user_name }} (@{{ user_login }})</p></div>
+<div class="user-info"><h2>👤 Usuario</h2><p><strong>Nombre:</strong> {{ user_name }}</p><p><strong>Login:</strong> @{{ user_login }}</p></div>
+<div class="stats-grid">
+<div class="stat-card"><div class="num">{{ public }}</div><div class="lbl">Públicos</div></div>
+<div class="stat-card"><div class="num">{{ private }}</div><div class="lbl">Privados</div></div>
+<div class="stat-card"><div class="num">{{ size }}</div><div class="lbl">Tamaño Total</div></div>
+</div>
+<h2 class="section">📦 Resumen</h2>
+<table><thead><tr><th>Nombre</th><th>Lenguaje</th><th>⭐</th><th>Actualizado</th></tr></thead><tbody>
+{% for r in repos %}<tr><td><strong>{{ r.name }}</strong></td><td>{{ r.lang }}</td><td>{{ r.stars }}</td><td>{{ r.updated }}</td></tr>{% endfor %}
+</tbody></table>
+<h2 class="section">🔍 Detalles</h2>
+{% for r in repos %}<div class="repo"><h3>{{ r.name }}</h3><div class="meta">
+<div><strong>Lenguaje:</strong> {{ r.lang }}</div><div><strong>Estrellas:</strong> {{ r.stars }}</div>
+<div><strong>Actualizado:</strong> {{ r.updated }}</div><div><strong>URL:</strong> <a href="{{ r.url }}">GitHub</a></div>
+</div></div>{% endfor %}
+<div class="footer"><p>Generado automáticamente | GitHub Report Generator</p></div>
+</body></html>"""
 
-def generate_pdf():
-    """Generate PDF report from template and data"""
-    try:
-        # Render template
-        template = Template(html_template)
-        html_content = template.render(
-            username=user_data["username"],
-            name=user_data["name"],
-            generated_at=user_data["generated_at"],
-            stats=user_data["stats"],
-            repositories=repositories
-        )
-        
-        # Generate PDF
-        HTML(string=html_content).write_pdf("repositorios_github.pdf")
-        
-        return {
-            "success": True,
-            "message": "PDF generado exitosamente",
-            "file": "repositorios_github.pdf",
-            "repos_count": len(repositories),
-            "file_size": "~150 KB"
-        }
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }
+def generate():
+    t = Template(HTML_TPL)
+    html = t.render(
+        date=datetime.now().strftime("%d %b %Y"),
+        user_name=USER["name"],
+        user_login=USER["login"],
+        public=STATS["public"],
+        private=STATS["private"],
+        size=STATS["size"],
+        repos=REPOS
+    )
+    HTML(string=html).write_pdf("repositorios_github.pdf")
+    return "✅ PDF generado: repositorios_github.pdf"
 
 if __name__ == "__main__":
-    result = generate_pdf()
-    if result["success"]:
-        print(f"✅ {result['message']}")
-        print(f"📄 Archivo: {result['file']}")
-        print(f"📊 Repositorios incluidos: {result['repos_count']}")
-        print(f"💾 Tamaño aproximado: {result['file_size']}")
-    else:
-        print(f"❌ Error: {result['error']}")
+    print(generate())
